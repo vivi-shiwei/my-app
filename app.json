@@ -16,8 +16,8 @@
     "assetBundlePatterns": [
       "**/*"
     ],
-    "ios": {
-      "supportsTablet": true
+    "android": {
+      "package": "school_next.macau.school"
     },
     "web": {
       "favicon": "./assets/favicon.png"
