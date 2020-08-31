@@ -2,158 +2,147 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, ToastAndroid, Button } from 'react-native';
 import AsyncStorage from '@react-native-community/async-storage'
+import { setContext } from 'apollo-link-context'
+import { createHttpLink } from 'apollo-link-http'
+import { onError } from 'apollo-link-error'
+import { ApolloLink } from 'apollo-link'
+import { ApolloClient } from 'apollo-client'
+import fetch from 'isomorphic-unfetch'
 
 import LoginScreen from './screens/loginScreen'
-// import ProfileScreen from './screens/profileScreen'
+import ProfileScreen from './screens/profileScreen'
 
 import { createAppContainer, createSwitchNavigator } from 'react-navigation'
 
 import { WebView } from 'react-native-webview'
-
-const storeData = async (value) => {
-  try {
-    await AsyncStorage.setItem('@storage_Key', value)
-  } catch (e) {
-    // saving error
-    console.log(e)
-    console.log('jsdklfjklsdjfsdf')
-  }
-}
-
-
-const getData = async () => {
-  try {
-    const value = await AsyncStorage.getItem('@storage_Key')
-    if (value !== null) {
-      return value
-    }
-  } catch (e) {
-    // error reading value
-    console.log(e)
-    console.log('jsdklfjklsdjfsdf')
-  }
-  return null
-}
-
-
 // const MainNavigator = createSwitchNavigator({
-//   Login: { screen: LoginScreen },
-//   Profile: { screen: ProfileScreen }
+//   Login: { screen: LoginScreen }
 // })
 
 // const App = createAppContainer(MainNavigator)
 
 // export default App
+let apolloClient = null
 
-
-const App = () => {
-  const [color, setColor] = useState('red')
-
-  let myWebView;
-  const runFirst = `
-      setTimeout(()=>{ document.body.style.backgroundColor = 'red'; }, 2000);
-      true;
-    `;
-  const butto = `
-  setTimeout(()=>{ document.body.style.backgroundColor = 'blue';}, 2000);
-      true;
-    `;
-  const changeBgWebviewhtml = () => {
-    myWebView.injectJavaScript(runFirst)
+function initApolloClient(...args) {
+  if (!apolloClient) {
+    apolloClient = createApolloClient(...args)
   }
 
-  useEffect(() => {
-    // console.log('jsdklfjklsdjfsdf11111111')
-    const getData = async () => {
-      try {
-        const user = JSON.parse(await AsyncStorage.getItem('user'))
-        const accessToken = JSON.parse(await AsyncStorage.getItem('accessToken'))
-        // return alter('已取出' + (user != null ? JSON.parse(user) : null) + (accessToken != null ? JSON.parse(accessToken) : null))
-        if (user != null && accessToken != null) {
-          fetch('http://192.168.3.3:3000/api/mobile/auth/mobileGoogle')
-            .then((response) => response.json())
-            .then((json) => {
-              return alert(json.movies);
-            })
-            .catch((error) => {
-              console.error(error);
-            });
-          // fetch
-          // next pages / api next api route
-          // return alert('已取出' + 'email,' + user.email + ' 名字,' + user.givenName)
-          // return (
-          //   <WebView
-          //     ref={(r) => myWebView = r}
-          //     source={{
-          //       uri:
-          //         'http://192.168.3.3:3000/mobile/google/home'
-          //     }}
-          //     // onLoadEnd={() => myWebView.postMessage('red')}
-          //     onMessage={(event) => {
-          //       let data = JSON.parse(event.nativeEvent.data)
-          //       let login = data['login']
-          //       if (login === 'google') {
-          //         LoginScreen()
-          //       }
-          //     }}
-          //   />
-          // )
-          // value previously stored
-        } else {
-          alert('無數據')
-          return null
-        }
-      } catch (e) {
-        alert('錯誤')
-        return null
-        // error reading value
+  return apolloClient
+}
+
+function createApolloClient(initialState = {}, { getCookies }) {
+  const httpLink = createHttpLink({
+    uri: 'https://stem.to/graphql',
+    credentials: 'include',
+    fetch
+  })
+
+  const authLink = setContext((request, { headers }) => {
+    const cookie = getCookies()
+    return {
+      headers: {
+        ...headers,
+        cookie
       }
     }
-    getData()
+  })
 
-    // const hello = async () => {
-    //   await storeData('jsdklfjlsdkfjls123132132132')
-    //   const result = await getData()
-    //   alert(result)
-    // }
+  const errorLink = onError(({ graphQLErrors, networkError }) => {
+    if (graphQLErrors) {
+      graphQLErrors.map(({ message, locations, path }) =>
+        console.log(
+          `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`
+        )
+      )
+    }
 
-    // hello()
-  }, [])
+    if (networkError) console.log(`[Network error]: ${networkError}`)
+  })
 
-  // async () => {
-  //   try {
-  //     const user = await AsyncStorage.getItem('user')
-  //     const accessToken = await AsyncStorage.getItem('accessToken')
-  //     if (user !== null && accessToken !== null) {
-  //       alert('email,' + user.email + ' 名字,' + user.givenName)
-  //       // value previously stored
-  //     }
-  //   } catch (e) {
-  //     alert('無數據')
-  //     return
-  //     // error reading value
-  //   }
-  // }
-  // setTimeout(() => {
-  //   this.webref.injectJavaScript(butto);
-  // }, 3000);
+  return new ApolloClient({
+    connectToDevTools: true,
+    link: ApolloLink.from([errorLink, authLink, httpLink]),
+    cache: new InMemoryCache().restore(initialState),
+    credentials: 'include'
+  })
+}
+
+const App = () => {
+  let myWebView
+  let userId
+  // const runFirst = `
+  //     document.body.style.backgroundColor = 'red';
+  //     true;
+  //   `;
+  // const butto = `
+  // setTimeout(()=>{ document.body.style.backgroundColor = 'blue';}, 2000);
+  //     true;
+  //   `;
 
   // setTimeout(() => {
   //   this.webref.injectJavaScript(runFirst);
   // }, 3000);
-  // getData()
+
+  const [testUrl, setTestUrl] = useState('http://192.168.3.3:3000/mobile/login')
+
+  useEffect(() => {
+    const getData = async () => {
+      try {
+        const user = JSON.parse(await AsyncStorage.getItem('user'))
+        const accessToken = JSON.parse(await AsyncStorage.getItem('accessToken'))
+        if (user != null && accessToken != null) {
+          let u = await fetch("http://192.168.3.3:3000/api/mobile/auth/mobileGoogle", {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(
+              {
+                user: user,
+                accessToken: accessToken
+              }
+            )
+          })
+            .then((response) => response.json())
+            .then((json) => {
+              this.apolloClient = initApolloClient(
+                {},
+                {
+                  getCookies: () => {
+                    console.log(json)
+                    if (json && json.session && json.sessionSig) {
+                      setTestUrl('http://192.168.3.3:3000/mobile/notifications')
+                      return `session=${json.session};session.sig=${json.sessionSig}`
+                    }
+                    return ''
+                  }
+                }
+              )
+            })
+          if (u) {
+
+            alert(u)
+            userId = u
+            setTestUrl('http://192.168.3.3:3000/mobile/notifications')
+          }
+        } else {
+          setTestUrl('http://192.168.3.3:3000/mobile/login')
+        }
+      } catch (e) {
+        return setTestUrl('http://192.168.3.3:3000/mobile/login')
+      }
+    }
+    getData()
+  }, [])
+
   return (
     <View style={styles.container} >
-      <Text>gerlgkrgk</Text>
-      {/* <LoginScreen /> */}
-      {/* <Button onPress={() => changeBgWebviewhtml()} title='appButton' /> */}
       <WebView
-        ref={(r) => myWebView = r}
+        // ref={(r) => (this.webref = r)}
         source={{
-          uri:
-            'http://192.168.3.3:3000/mobile/login'
+          uri: testUrl
         }}
-        // onLoadEnd={() => myWebView.postMessage('red')}
+        // onLoadEnd={() => myWebView.postMessage(userId)}
         onMessage={(event) => {
           let data = JSON.parse(event.nativeEvent.data)
           let login = data['login']
@@ -161,20 +150,7 @@ const App = () => {
             LoginScreen()
           }
         }}
-      // injectJavaScript={butto}
       />
-      {/* <WebView
-        ref={(r) => myWebView = r}
-        source={{
-          uri:
-            'http://192.168.3.3:3000/mobile/google/home'
-        }}
-        onMessage={(event) => {
-          let data = JSON.parse(event.nativeEvent.data);
-          let msg = data['msg'] + '=' + data['time'];
-          ToastAndroid.show(msg, ToastAndroid.SHORT);
-        }}
-      /> */}
     </View>
   )
 }
