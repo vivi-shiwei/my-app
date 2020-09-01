@@ -3,6 +3,9 @@ import { Text, View, StyleSheet, Button } from 'react-native'
 import AsyncStorage from '@react-native-community/async-storage'
 import * as Google from 'expo-google-app-auth'
 import { WebView } from 'react-native-webview'
+import { createAppContainer, createSwitchNavigator } from 'react-navigation'
+
+import ProfileScreen from './profileScreen'
 
 const IOS_CLIENT_ID = 'your-ios-client-id'
 
@@ -20,15 +23,21 @@ const LoginScreen = (props) => {
           AsyncStorage.setItem('accessToken', JSON.stringify(accessToken))
         ])
         alert('已存儲 ' + 'user,' + await AsyncStorage.getItem('user') + ' 名字,' + await AsyncStorage.getItem('accessToken'))
-        console.log('accessToken')
-        return (
-          <WebView
-            source={{
-              uri:
-                'http://192.168.3.3:3000/mobile/notifications'
-            }}
-          />
-        )
+        ProfileScreen()
+        //   return (
+        //     <WebView
+        //   source={{
+        //     uri: testUrl
+        //   }}
+        //   onMessage={(event) => {
+        //     let data = JSON.parse(event.nativeEvent.data)
+        //     let login = data['login']
+        //     if (login === 'google') {
+        //       LoginScreen()
+        //     }
+        //   }}
+        // />
+        //   )
       } catch (e) {
         return alert('存儲失敗')
       }

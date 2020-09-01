@@ -5,7 +5,7 @@ import { WebView } from 'react-native-webview'
 const ProfileScreen = (props) => {
   return (
     // <Text style={{ fontSize: 20, fontWeight: 'bold' }}>Welcom,{props.navigation.getParam('email')}</Text>
-    <WebView source={{ uri: 'https://phone-school.vercel.app/' }} style={{ marginTop: 20 }} />
+    <WebView source={{ uri: 'http://192.168.3.3:3000/mobile/notifications' }} style={{ marginTop: 20 }} />
     // <WebView source={{ uri: `https://phone-school.vercel.app/${props.navigation.getParam('email')}` }} style={{ marginTop: 20 }} />
     // <WebView source={{ uri: 'https://school-next.macau.school/school/[schoolId]/notifications' }} style={{ marginTop: 20 }} />
 
